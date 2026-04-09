@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CourseSphere | Neural Authentication</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Exo+2:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00cfff;
+            --error-red: #ff3131;
+            --success-green: #00ff88;
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background: #000;
+            color: white;
+            font-family: 'Exo 2', sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            padding: 20px; /* Essential for mobile breathing room */
+        }
+
+        .bg-glow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0, 207, 255, 0.08) 0%, transparent 70%);
+            z-index: -1;
+        }
+
+        .login-container {
+            background: var(--glass);
+            padding: clamp(30px, 8vw, 50px);
+            border-radius: 30px;
+            border: 1px solid rgba(0, 207, 255, 0.2);
+            backdrop-filter: blur(25px);
+            width: 100%;
+            max-width: 420px; /* Limits desktop width */
+            text-align: center;
+            position: relative;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+        }
+
+        #scanner {
+            width: 100%;
+            height: 3px;
+            background: var(--neon-blue);
+            position: absolute;
+            left: 0;
+            top: 0;
+            box-shadow: 0 0 20px var(--neon-blue), 0 0 40px var(--neon-blue);
+            opacity: 0;
+            z-index: 10;
+        }
+
+        @keyframes scanning {
+            0% { top: 0%; opacity: 1; }
+            50% { top: 100%; opacity: 1; }
+            100% { top: 0%; opacity: 1; }
+        }
+
+        h1 {
+            font-family: 'Orbitron';
+            font-size: clamp(1.2rem, 5vw, 1.6rem);
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+            color: var(--neon-blue);
+            text-shadow: 0 0 15px var(--neon-blue);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            font-size: 9px;
+            font-family: 'Orbitron';
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            display: block;
+            opacity: 0.6;
+            color: var(--neon-blue);
+        }
+
+        input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            color: white;
+            border-radius: 12px;
+            outline: none;
+            transition: 0.3s;
+            font-family: 'Exo 2';
+            font-size: 14px; /* Prevents auto-zoom on iPhone */
+        }
+
+        input:focus {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0, 207, 255, 0.15);
+        }
+
+        .btn-auth {
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            font-family: 'Orbitron';
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: 0.4s;
+            margin-top: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .btn-auth:hover, .btn-auth:active {
+            background: var(--neon-blue);
+            color: #000;
+            box-shadow: 0 0 30px var(--neon-blue);
+        }
+
+        #status-msg {
+            margin-top: 25px;
+            font-size: 10px;
+            font-family: 'Orbitron';
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            min-height: 15px;
+        }
+
+        .success-text { color: var(--success-green) !important; text-shadow: 0 0 10px var(--success-green); }
+
+        /* Mobile specific adjustment for very small screens */
+        @media (max-height: 600px) {
+            .login-container { padding: 25px; }
+            h1 { margin-bottom: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-glow"></div>
+
+    <div class="login-container">
+        <div id="scanner"></div>
+
+        <h1>CORE ACCESS</h1>
+
+        <div class="input-group">
+            <label>IDENTIFICATION NAME</label>
+            <input type="text" id="username" placeholder="ENTER NAME..." autocomplete="off">
+        </div>
+
+        <div class="input-group">
+            <label>ENCRYPTION KEY</label>
+            <input type="password" id="password" placeholder="••••••••">
+        </div>
+
+        <button class="btn-auth" id="loginBtn" onclick="startVerification()">Initiate Sync</button>
+
+        <div id="status-msg">System Awaiting Credentials...</div>
+    </div>
+
+    <script>
+        function startVerification() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const status = document.getElementById('status-msg');
+            const scanner = document.getElementById('scanner');
+            const loginBtn = document.getElementById('loginBtn');
+
+            if (user.trim() === "" || pass.trim() === "") {
+                status.innerText = "Error: Credentials Null";
+                status.style.color = "var(--error-red)";
+                return;
+            }
+
+            // Save to memory
+            localStorage.setItem('cs_username', user);
+
+            // Trigger visual scan
+            status.innerText = "Scanning Biometric Signature...";
+            status.style.color = "var(--neon-blue)";
+            scanner.style.animation = "scanning 1.5s ease-in-out infinite";
+            
+            // Disable UI
+            loginBtn.style.pointerEvents = "none";
+            loginBtn.style.opacity = "0.4";
+
+            setTimeout(() => {
+                scanner.style.animation = "none";
+                scanner.style.opacity = "0";
+                
+                status.classList.add('success-text');
+                status.innerText = "Access Granted. Welcome, " + user.toUpperCase();
+                
+                setTimeout(() => {
+                    window.location.href = "index.html"; 
+                }, 1500);
+                
+            }, 3000);
+        }
+
+        // Enter key support
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') startVerification();
+        });
+    </script>
+
+</body>
+</html>
