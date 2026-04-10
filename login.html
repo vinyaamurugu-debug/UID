@@ -24,7 +24,7 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            padding: 20px; /* Essential for mobile breathing room */
+            padding: 20px;
         }
 
         .bg-glow {
@@ -42,10 +42,11 @@
             border: 1px solid rgba(0, 207, 255, 0.2);
             backdrop-filter: blur(25px);
             width: 100%;
-            max-width: 420px; /* Limits desktop width */
+            max-width: 420px;
             text-align: center;
             position: relative;
             box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            transition: border-color 0.3s ease;
         }
 
         #scanner {
@@ -64,6 +65,12 @@
             0% { top: 0%; opacity: 1; }
             50% { top: 100%; opacity: 1; }
             100% { top: 0%; opacity: 1; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
         }
 
         h1 {
@@ -100,7 +107,7 @@
             outline: none;
             transition: 0.3s;
             font-family: 'Exo 2';
-            font-size: 14px; /* Prevents auto-zoom on iPhone */
+            font-size: 14px;
         }
 
         input:focus {
@@ -142,7 +149,6 @@
 
         .success-text { color: var(--success-green) !important; text-shadow: 0 0 10px var(--success-green); }
 
-        /* Mobile specific adjustment for very small screens */
         @media (max-height: 600px) {
             .login-container { padding: 25px; }
             h1 { margin-bottom: 15px; }
@@ -153,7 +159,7 @@
 
     <div class="bg-glow"></div>
 
-    <div class="login-container">
+    <div class="login-container" id="loginBox">
         <div id="scanner"></div>
 
         <h1>CORE ACCESS</h1>
@@ -164,7 +170,7 @@
         </div>
 
         <div class="input-group">
-            <label>ENCRYPTION KEY</label>
+            <label>ENCRYPTION KEY (MIN 6)</label>
             <input type="password" id="password" placeholder="••••••••">
         </div>
 
@@ -180,22 +186,38 @@
             const status = document.getElementById('status-msg');
             const scanner = document.getElementById('scanner');
             const loginBtn = document.getElementById('loginBtn');
+            const loginBox = document.getElementById('loginBox');
 
+            // 1. EMPTY CHECK
             if (user.trim() === "" || pass.trim() === "") {
                 status.innerText = "Error: Credentials Null";
                 status.style.color = "var(--error-red)";
                 return;
             }
 
-            // Save to memory
+            // 2. PASSWORD LENGTH RESTRICTION (Minimum 6)
+            if (pass.length < 6) {
+                status.innerText = "ACCESS DENIED: KEY TOO SHORT (MIN 6)";
+                status.style.color = "var(--error-red)";
+                
+                // Shake and Red Glow effect on error
+                loginBox.style.animation = "shake 0.4s ease";
+                loginBox.style.borderColor = "var(--error-red)";
+                
+                setTimeout(() => {
+                    loginBox.style.animation = "none";
+                    loginBox.style.borderColor = "rgba(0, 207, 255, 0.2)";
+                }, 400);
+                return;
+            }
+
+            // SUCCESS LOGIC
             localStorage.setItem('cs_username', user);
 
-            // Trigger visual scan
             status.innerText = "Scanning Biometric Signature...";
             status.style.color = "var(--neon-blue)";
             scanner.style.animation = "scanning 1.5s ease-in-out infinite";
             
-            // Disable UI
             loginBtn.style.pointerEvents = "none";
             loginBtn.style.opacity = "0.4";
 
@@ -213,7 +235,6 @@
             }, 3000);
         }
 
-        // Enter key support
         document.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') startVerification();
         });
